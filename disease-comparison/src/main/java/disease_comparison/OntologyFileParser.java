@@ -114,10 +114,7 @@ public class OntologyFileParser {
 	 * 
 	 * If the file is not found, this function throws a FileNotFoundException.
 	 */
-	public static void parseIndividualToClass(String filename, HashMap<String, OntologyNode> node_map)
-	{
-		// Keep track of the annotations we've seen.
-		int total_annotations = 0;
+	public static void parseIndividualToClass(String filename, HashMap<String, OntologyNode> node_map) {
 		
 		// Read in annotations
 		try
@@ -131,7 +128,6 @@ public class OntologyFileParser {
 				String node_identity = pieces[1];
 				OntologyNode node = node_map.get(node_identity);
 				node.addGivenAnnotation();
-				total_annotations++;
 			}
 		}
 		catch (FileNotFoundException exception)
@@ -140,8 +136,7 @@ public class OntologyFileParser {
 			System.out.println("Individual To Class file not found at:");
 			System.out.println(filename);
 		}
-		
-		// FIXME: Compute IC scores.
+
 	}
 
 }

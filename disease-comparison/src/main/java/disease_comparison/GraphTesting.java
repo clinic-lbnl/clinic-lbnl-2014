@@ -36,7 +36,12 @@ public class GraphTesting {
 		HashMap<String, OntologyNode> node_map = OntologyFileParser.parseClassLabels("../../test-files/class-labels.txt");
 		DirectedGraph<OntologyNode, DefaultEdge> g = OntologyFileParser.parseClassToClass("../../test-files/class-to-class.txt", node_map);
 		OntologyFileParser.parseIndividualToClass("../../test-files/individual-to-class.txt", node_map);
-		OntologyNode node = node_map.get("HMC:2222");
-		System.out.println(node.getGivenAnnotations());
+		OntologyUtilities.computeGraphIC(g, node_map);
+		for (String id : node_map.keySet())
+		{
+			OntologyNode node = node_map.get(id);
+			System.out.println(node);
+		}
+		
 	}
 }

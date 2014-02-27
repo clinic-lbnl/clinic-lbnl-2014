@@ -16,7 +16,7 @@ public class OntologyNode {
 	// The number of annotations associated with this node and all its descendants.
 	private int derived_annotations;
 	// The IC score of the node.
-	private int ic_score;
+	private double ic_score;
 
 	/* Constructors */
 	
@@ -76,14 +76,14 @@ public class OntologyNode {
 		this.identity = identity;
 	}
 
-	public int getICScore()
+	public double getICScore()
 	{
 		return ic_score;
 	}
 
-	public void setICScore(int ic_score)
+	public void setICScore(double d)
 	{
-		this.ic_score = ic_score;
+		this.ic_score = d;
 	}
 	
 	/* Mutators */
