@@ -13,7 +13,7 @@ public class OntologyUtilities {
 	 * Arguments:
 	 * 		derived_annotations: The number of annotations below a given node.
 	 * 		total_annotations: The total number of annotations to the ontology.
-	 * This compute the IC score of a node based on the number of annotations.
+	 * This computes the IC score of a node based on the number of annotations.
 	 */
 	public static double computeNodeIC(int derived_annotations, int total_annotations) {
 		// Calculate the probability that a given annotation is below the node in question.
@@ -23,6 +23,14 @@ public class OntologyUtilities {
 		return -Math.log(probability) / Math.log(2);
 	}
 	
+	/*
+	 * computeGraphIC
+	 * Arguments:
+	 * 		graph: The graph whose nodes we want to find IC scores for.
+	 * 		node_map: The map from identifiers to nodes.
+	 * This compute the IC scores for all nodes in the graph based on the
+	 * number of annotations.
+	 */
 	public static void computeGraphIC(DirectedGraph<OntologyNode, DefaultEdge> graph,
 			HashMap<String, OntologyNode> node_map) {
 		
