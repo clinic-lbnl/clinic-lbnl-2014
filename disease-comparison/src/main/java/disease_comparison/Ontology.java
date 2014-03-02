@@ -366,4 +366,42 @@ public class Ontology {
 		}
 	}
 	
+	/*
+	 * computeLCS
+	 * Arguments:
+	 * 		first_identity: The identifier for the first node.
+	 * 		second_identity: The identifier for the second node.
+	 * This function computes the least common subsumer for two nodes.
+	 */
+	// TODO: Make this private.
+	public String computeLCS(String first_identity, String second_identity) {
+		
+		// Get all the subsumers for both of the given nodes.
+		Set<String> first_subsumers = subsumers(first_identity);
+		Set<String> second_subsumers = subsumers(second_identity);
+		
+		// Find the common subsumers of the two nodes.
+		Set<String> common_subsumers = new HashSet<String>(first_subsumers);
+		common_subsumers.retainAll(second_subsumers);
+		
+		// Keep track of the best common subsumer.
+		String best_subsumer = "CLEARLY WRONG";
+		double best_ic = -1;
+		
+		// Check each common subsumer against the best so far.
+		for (String subsumer : common_subsumers)
+		{
+			double subsumer_ic = node_map.get(subsumer).getICScore(); 
+			if (subsumer_ic > best_ic)
+			{
+				best_subsumer = subsumer;
+				best_ic = subsumer_ic;
+			}
+		}
+		
+		// Return the identifier of the least common subsumer.
+		return best_subsumer;
+		
+	}
+	
 }

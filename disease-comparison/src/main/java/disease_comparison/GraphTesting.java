@@ -17,5 +17,7 @@ public class GraphTesting {
 	
 		o.computeAllICScores();
 		
+		System.out.println(o.computeLCS("HMC:2222", "HMC:1111"));
+		
 	}
 }
