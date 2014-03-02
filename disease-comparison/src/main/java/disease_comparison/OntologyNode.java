@@ -13,8 +13,6 @@ public class OntologyNode {
 	private String identity;
 	// The number of annotations directly associated with the node.
 	private int given_annotations;
-	// The number of annotations associated with this node and all its descendants.
-	private int derived_annotations;
 	// The IC score of the node.
 	private double ic_score;
 
@@ -28,7 +26,6 @@ public class OntologyNode {
 		
 		// Until annotations are processed, assume there aren't any.
 		given_annotations = 0;
-		derived_annotations = 0;
 		
 		// We can't compute the IC score until we've processed annotations.
 		setICScore(-1);
@@ -54,16 +51,6 @@ public class OntologyNode {
 	public void setGivenAnnotations(int given_annotations)
 	{
 		this.given_annotations = given_annotations;
-	}
-
-	public int getDerivedAnnotations()
-	{
-		return derived_annotations;
-	}
-
-	public void setDerivedAnnotations(int derived_annotations)
-	{
-		this.derived_annotations = derived_annotations;
 	}
 
 	public String getIdentity()
@@ -103,8 +90,6 @@ public class OntologyNode {
 		node_string += "Identity: " + identity;
 		node_string += ", ";
 		node_string += "Given Annotations: " + given_annotations;
-		node_string += ", ";
-		node_string += "Derived Annotations: " + derived_annotations;
 		node_string += ", ";
 		node_string += "IC Score: " + ic_score;
 		node_string += "}";
