@@ -26,6 +26,9 @@ public class Ontology {
 	// keep a table of identifiers.
 	private Map<String, OntologyNode> node_map;
 	
+	// Keep track of all the nodes each disease is associated with.
+	public Map<String, Set<String>> annotation_map;
+	
 	// Keep a count of all the annotations to the ontology.
 	private int total_annotations;
 
@@ -43,6 +46,9 @@ public class Ontology {
 		
 		// We haven't yet seen any annotations.
 		total_annotations = 0;
+		
+		// We haven't yet seen any diseases.
+		annotation_map = new HashMap<String, Set<String>>();
 	}
 	
 	/****************/
@@ -144,11 +150,29 @@ public class Ontology {
 			{
 				String line = sc.nextLine();
 				String [] pieces = line.split("\t");
-				// We don't actually care what the annotations are called.
+				String annotation_identity = pieces[0];
 				String node_identity = pieces[1];
 				OntologyNode node = node_map.get(node_identity);
+				
+				// Add an annotation to the node count.
 				node.addGivenAnnotation();
+				
+				// Add an annotation to the ontology count.
 				total_annotations++;
+				
+				// Add an annotation to the disease.
+				if (annotation_map.containsKey(annotation_identity))
+				{
+					annotation_map.get(annotation_identity).add(node_identity);
+				}
+				else
+				{
+					// If we haven't seen this disease before, build a new set
+					// of node identifiers to map this disease to.
+					Set<String> annotation_nodes = new HashSet<String>();
+					annotation_nodes.add(node_identity);
+					annotation_map.put(annotation_identity, annotation_nodes);
+				}
 			}
 		}
 		catch (FileNotFoundException exception)
@@ -385,7 +409,7 @@ public class Ontology {
 		common_subsumers.retainAll(second_subsumers);
 		
 		// Keep track of the best common subsumer.
-		String best_subsumer = "CLEARLY WRONG";
+		String best_subsumer = "NO SUBSUMERS";
 		double best_ic = -1;
 		
 		// Check each common subsumer against the best so far.

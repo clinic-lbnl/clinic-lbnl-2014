@@ -6,17 +6,25 @@ package disease_comparison;
  */
 public class OntologyNode {
 
+	/**********************/
 	/* Instance Variables */
+	/**********************/
+	
 	// The name of the node.
 	private String name;
+	
 	// The unique identifier.
 	private String identity;
+	
 	// The number of annotations directly associated with the node.
 	private int given_annotations;
+	
 	// The IC score of the node.
 	private double ic_score;
 
+	/****************/
 	/* Constructors */
+	/****************/
 	
 	public OntologyNode(String new_identity, String new_name)
 	{
@@ -31,7 +39,9 @@ public class OntologyNode {
 		setICScore(-1);
 	}
 	
+	/***********************/
 	/* Getters and Setters */
+	/***********************/
 	
 	public String getName()
 	{
@@ -73,14 +83,19 @@ public class OntologyNode {
 		this.ic_score = d;
 	}
 	
+	/************/
 	/* Mutators */
+	/************/
 	
 	public void addGivenAnnotation()
 	{
 		given_annotations++;
 	}
 	
+	/****************/
 	/* Pretty Print */
+	/****************/
+	
 	public String toString()
 	{
 		String node_string = "";

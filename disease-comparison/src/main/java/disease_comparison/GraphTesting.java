@@ -1,11 +1,5 @@
 package disease_comparison;
 
-import org.jgrapht.*;
-import org.jgrapht.graph.*;
-
-import java.util.HashMap;
-import java.io.FileNotFoundException;
-
 public class GraphTesting {
 	
 	public static void main(String [] args) {
@@ -17,7 +11,15 @@ public class GraphTesting {
 	
 		o.computeAllICScores();
 		
-		System.out.println(o.computeLCS("HMC:2222", "HMC:1111"));
+		for (String disease : o.annotation_map.keySet())
+		{
+			System.out.println(disease + ":");
+			for (String node : o.annotation_map.get(disease))
+			{
+				System.out.print(node + " ");
+			}
+			System.out.println();
+		}
 		
 	}
 }
