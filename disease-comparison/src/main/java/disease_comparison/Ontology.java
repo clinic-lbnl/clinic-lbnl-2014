@@ -27,7 +27,10 @@ public class Ontology {
 	private Map<String, OntologyNode> node_map;
 	
 	// Keep track of all the nodes each disease is associated with.
-	public Map<String, Set<String>> annotation_map;
+	private Map<String, Set<String>> annotation_map;
+	
+	// Keep track of the names of diseases.
+	private Map<String, String> annotation_names;
 	
 	// Keep a count of all the annotations to the ontology.
 	private int total_annotations;
@@ -43,12 +46,37 @@ public class Ontology {
 		
 		// We don't have any nodes, so our lookup table is empty.
 		node_map = new HashMap<String, OntologyNode>();
+				
+		// We haven't yet seen any diseases.
+		annotation_map = new HashMap<String, Set<String>>();
+		annotation_names = new HashMap<String, String>();
+		
+		// We haven't yet seen any annotations.
+		total_annotations = 0;
+	}
+	
+	public Ontology(String class_labels, String class_to_class,
+			String individual_labels, String individual_to_class) {
+		
+		// Create a blank ontology.
+		graph = new DefaultDirectedGraph<OntologyNode, DefaultEdge>(DefaultEdge.class);
+		
+		// We don't have any nodes, so our lookup table is empty.
+		node_map = new HashMap<String, OntologyNode>();
+				
+		// We haven't yet seen any diseases.
+		annotation_map = new HashMap<String, Set<String>>();
+		annotation_names = new HashMap<String, String>();
 		
 		// We haven't yet seen any annotations.
 		total_annotations = 0;
 		
-		// We haven't yet seen any diseases.
-		annotation_map = new HashMap<String, Set<String>>();
+		// Parse the input files and fill in the ontology appropriately.
+		parseClassLabels(class_labels);
+		parseClassToClass(class_to_class);
+		parseIndividualToClass(individual_to_class);
+		parseIndividualLabels(individual_labels);
+				
 	}
 	
 	/****************/
@@ -183,6 +211,42 @@ public class Ontology {
 		}
 
 	}
+	
+	/*
+	 * parseIndividualLabels
+	 * Arguments:
+	 * 		filename: The path to the file of annotations.
+	 * 			The input file must be formatted in two tab-separated columns.
+	 * 			The first column holds the identifier of the disease, and
+	 * 			the second column holds the name of the disease.
+	 * This function stores the names associated with each disease.
+	 */
+	public void parseIndividualLabels(String filename) {
+		
+		// Read in annotations.
+		try
+		{
+			// Add an annotation label for each line of the input file.
+			for (Scanner sc = new Scanner(new File(filename)); sc.hasNext(); )
+			{
+				String line = sc.nextLine();
+				String [] pieces = line.split("\t");
+				String annotation_identity = pieces[0];
+				String annotation_name = pieces[1];
+				
+				// Save the name.
+				annotation_names.put(annotation_identity, annotation_name);
+			}
+		}
+		catch (FileNotFoundException exception)
+		{
+			// If we're given a bad file, let the user know.
+			System.out.println("Individual Labels file not found at:");
+			System.out.println(filename);
+		}
+
+	}
+
 	
 	/********************/
 	/* Graph Operations */
@@ -397,8 +461,7 @@ public class Ontology {
 	 * 		second_identity: The identifier for the second node.
 	 * This function computes the least common subsumer for two nodes.
 	 */
-	// TODO: Make this private.
-	public String computeLCS(String first_identity, String second_identity) {
+	private String computeLCS(String first_identity, String second_identity) {
 		
 		// Get all the subsumers for both of the given nodes.
 		Set<String> first_subsumers = subsumers(first_identity);
@@ -425,6 +488,70 @@ public class Ontology {
 		
 		// Return the identifier of the least common subsumer.
 		return best_subsumer;
+		
+	}
+	
+	public void compareAllDiseases(String filename) {
+		
+		Set<String> disease_identities = annotation_map.keySet();
+		
+		for (String first_identity : disease_identities)
+		{
+			for (String second_identity : disease_identities)
+			{
+				if (first_identity.compareTo(second_identity) <= 0)
+				{
+					continue;
+				}
+				
+				// FIXME: File I/O.
+			}
+		}
+		
+	}
+	
+	/***********************/
+	/* Comparison Measures */
+	/***********************/
+	
+	// TODO: Add comparison measures.
+	// We've only provided a test example here.
+	
+	/*
+	 * maxIC
+	 * Arguments:
+	 * 		first_identity: The identifier for the first disease.
+	 * 		second_identity: The identifier for the second disease.
+	 * This function computes the maxIC measure for the two given diseases.
+	 */
+	private double maxIC(String first_identity, String second_identity) {
+		
+		// Find all the nodes associated with each disease.
+		Set<String> first_nodes = annotation_map.get(first_identity);
+		Set<String> second_nodes = annotation_map.get(second_identity);
+
+		// Keep track of the best IC score we've seen.
+		double best_ic = -1;
+		
+		// Look at the nodes associated with each annotation.
+		for (String first_node_identity : first_nodes)
+		{
+			for (String second_node_identity : second_nodes)
+			{
+				// Find the least common subsumer for the two nodes.
+				String lcs = computeLCS(first_node_identity, second_node_identity);
+				double lcs_ic = node_map.get(lcs).getICScore();
+				
+				// If the LCS has a better IC score, update our best.
+				if (lcs_ic > best_ic)
+				{
+					best_ic = lcs_ic;
+				}
+			}
+		}
+		
+		// Return the best IC score.
+		return best_ic;
 		
 	}
 	

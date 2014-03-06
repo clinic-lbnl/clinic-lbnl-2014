@@ -4,21 +4,13 @@ public class GraphTesting {
 	
 	public static void main(String [] args) {
 		
-		Ontology o = new Ontology();
-		o.parseClassLabels("../../test-files/class-labels.txt");
-		o.parseClassToClass("../../test-files/class-to-class.txt");
-		o.parseIndividualToClass("../../test-files/individual-to-class.txt");
-	
-		o.computeAllICScores();
-		
-		for (String disease : o.annotation_map.keySet())
+		Ontology o = new Ontology("../../test-files/class-labels.txt", "../../test-files/class-to-class.txt",
+				"../../test-files/individual-labels.txt", "../../test-files/individual-to-class.txt");
+
+		for (String id: o.annotation_names.keySet())
 		{
-			System.out.println(disease + ":");
-			for (String node : o.annotation_map.get(disease))
-			{
-				System.out.print(node + " ");
-			}
-			System.out.println();
+			System.out.println(id);
+			System.out.println(o.annotation_names.get(id));
 		}
 		
 	}
