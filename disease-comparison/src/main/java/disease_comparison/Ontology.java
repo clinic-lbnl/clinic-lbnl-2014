@@ -2,6 +2,8 @@ package disease_comparison;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -39,22 +41,6 @@ public class Ontology {
 	/* Constructors */
 	/****************/
 	
-	public Ontology() {
-		
-		// Create a blank ontology.
-		graph = new DefaultDirectedGraph<OntologyNode, DefaultEdge>(DefaultEdge.class);
-		
-		// We don't have any nodes, so our lookup table is empty.
-		node_map = new HashMap<String, OntologyNode>();
-				
-		// We haven't yet seen any diseases.
-		annotation_map = new HashMap<String, Set<String>>();
-		annotation_names = new HashMap<String, String>();
-		
-		// We haven't yet seen any annotations.
-		total_annotations = 0;
-	}
-	
 	public Ontology(String class_labels, String class_to_class,
 			String individual_labels, String individual_to_class) {
 		
@@ -76,6 +62,9 @@ public class Ontology {
 		parseClassToClass(class_to_class);
 		parseIndividualToClass(individual_to_class);
 		parseIndividualLabels(individual_labels);
+		
+		// Get the IC score for every node.
+		computeAllICScores();
 				
 	}
 	
@@ -93,7 +82,7 @@ public class Ontology {
 	 * This function constructs a node for each line in the input file with the
 	 * given identifier and name.
 	 */
-	public void parseClassLabels(String filename) {
+	private void parseClassLabels(String filename) {
 		
 		// Add vertices to the graph.
 		try
@@ -133,7 +122,7 @@ public class Ontology {
 	 * 			the second column holds the identifier of the parent node.
 	 * This function constructs the edges of the graph.
 	 */
-	public void	parseClassToClass(String filename) {
+	private void parseClassToClass(String filename) {
 		
 		// Add edges to the graph.
 		try
@@ -168,7 +157,7 @@ public class Ontology {
 	 * 			the second column holds the identifier of the associated node.
 	 * This function counts the annotations on each node.
 	 */
-	public void parseIndividualToClass(String filename) {
+	private void parseIndividualToClass(String filename) {
 		
 		// Read in annotations.
 		try
@@ -221,7 +210,7 @@ public class Ontology {
 	 * 			the second column holds the name of the disease.
 	 * This function stores the names associated with each disease.
 	 */
-	public void parseIndividualLabels(String filename) {
+	private void parseIndividualLabels(String filename) {
 		
 		// Read in annotations.
 		try
@@ -445,7 +434,7 @@ public class Ontology {
 	 * 		None
 	 * This function computes the IC score for every node in the ontology.
 	 */
-	public void computeAllICScores() {
+	private void computeAllICScores() {
 		
 		// Compute the IC score for each node.
 		for (String identity : node_map.keySet())
@@ -491,23 +480,100 @@ public class Ontology {
 		
 	}
 	
-	public void compareAllDiseases(String filename) {
+	/*
+	 * compareAllDiseases
+	 * Arguments:
+	 * 		filename: The path of the output file.
+	 * 		options: Which information to output.
+	 * This computes the similarity scores for all diseases and write them to
+	 * the given output file.
+	 */
+	public void compareAllDiseases(String filename, OutputOptions options) {
 		
-		Set<String> disease_identities = annotation_map.keySet();
-		
-		for (String first_identity : disease_identities)
-		{
-			for (String second_identity : disease_identities)
+		try
+		{			
+			// Open the given file for output.
+			PrintWriter writer = new PrintWriter(filename, "UTF-8");
+			
+			// Find all the diseases.
+			Set<String> disease_identities = annotation_map.keySet();
+					
+			// Compare each pair of diseases.
+			for (String first_identity : disease_identities)
 			{
-				if (first_identity.compareTo(second_identity) <= 0)
+				for (String second_identity : disease_identities)
 				{
-					continue;
+					// We only need to compare each pair of diseases once.
+					if (first_identity.compareTo(second_identity) <= 0)
+					{
+						continue;
+					}
+					
+					// Get the next line of the output.
+					String line_output = processOutput(options, first_identity, second_identity);
+					
+					// Write the output to the file.
+					writer.println(line_output);
 				}
-				
-				// FIXME: File I/O.
 			}
+			
+			// Close the output file.
+			writer.close();
+		}
+		catch (FileNotFoundException e)
+		{
+			// If the file doesn't exist, complain.
+			System.out.println("Compare All Diseases wrote to invalid file.");
+		}
+		catch (UnsupportedEncodingException e)
+		{
+			// If the encoding is wrong (which should never happen), complain.
+			System.out.println("Compare All Diseases could not encode output.");
+		}
+						
+	}
+	
+	/* 
+	 * processOutput
+	 * Arguments:
+	 * 		options: Which information to output.
+	 * 		first_identity: The identifier for the first disease.
+	 * 		second_identity: The identifier for the second disease.
+	 * This function creates a line of the output.
+	 */
+	private String processOutput(OutputOptions options, String first_identity, String second_identity)
+	{
+		// Calculate the maxIC for the first and second identity.
+		double max_ic = maxIC(first_identity, second_identity);
+		
+		// Create the output string.	
+		String line = "";
+		
+		// Show identities and names if the appropriate options are chosen.
+		if (options.getShowIdentities())
+		{
+			line += first_identity + "\t";
+		}
+		if (options.getShowNames())
+		{
+			line += annotation_names.get(first_identity) + "\t";
+		}
+		if (options.getShowIdentities())
+		{
+			line += second_identity + "\t";
+		}
+		if (options.getShowNames())
+		{
+			line += annotation_names.get(second_identity) + "\t";
+		}
+		// Show measures if the corresponding options are chosen.
+		if (options.getShowMaxIC())
+		{
+			line += max_ic + "\t";
 		}
 		
+		// Return the composite line.
+		return line;
 	}
 	
 	/***********************/
