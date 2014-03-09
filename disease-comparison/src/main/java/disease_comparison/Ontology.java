@@ -40,6 +40,23 @@ public class Ontology {
 	// Keep track of the least common subsumers we've seen so we don't repeat
 	// too much work.
 	private Map<String, String> lcs_cache;
+	
+	// Keep track of the root of the graph.
+	private String root;
+	
+	/* Thresholding variables */
+	// TODO: Handle these better.
+	
+	// Decide whether or not to use thresholding.
+	private boolean use_thresholding;
+	
+	// If we are using thresholding, decide on the maximum number of
+	// important nodes.
+	private int max_important_nodes;
+	
+	// If we are using thresholding, keep track of the nodes with the
+	// highest IC scores.
+	private Set<String> important_nodes;
 
 	/****************/
 	/* Constructors */
@@ -64,15 +81,33 @@ public class Ontology {
 		// We haven't yet computed the LCS for any pairs of nodes.
 		lcs_cache = new HashMap<String, String>();
 		
+		// We don't yet have a graph, so we don't know the root yet.
+		root = "Empty Graph";
+		
+		// FIXME: These are magic constants. It might make sense to put them in
+		// a config file.
+		use_thresholding = true;
+		max_important_nodes = 2;
+		
+		// We haven't yet seen nodes, so we don't know which are important.
+		important_nodes = new HashSet<String>();
+		
 		// Parse the input files and fill in the ontology appropriately.
 		parseClassLabels(class_labels);
 		parseClassToClass(class_to_class);
 		parseIndividualToClass(individual_to_class);
 		parseIndividualLabels(individual_labels);
 		
+		findRoot();
+		
 		// Get the IC score for every node.
 		computeAllICScores();
-				
+		
+		// If we're using thresholding, find the important nodes.
+		if (use_thresholding)
+		{
+			findImportantNodes();
+		}
 	}
 	
 	/****************/
@@ -387,6 +422,32 @@ public class Ontology {
 	}
 	
 	/*
+	 * findRoot
+	 * Arguments:
+	 * 		None
+	 * This function finds the root of the ontology and stores it.
+	 */
+	private void findRoot() {
+		
+		// Keep track of our possible root and nodes to consider.
+		String possible_root = "Empty Graph";
+		Set<String> node_set = node_map.keySet();
+		
+		// So long as the possible root has ancestors, we're not done. 
+		while (!node_set.isEmpty())
+		{
+			// If we haven't found the root yet, the root is an ancestor of
+			// our possible root, so we try again with the parents.
+			possible_root = node_set.iterator().next();
+			node_set = parents(possible_root);
+		}
+		
+		// Our possible root no longer has parents, so it is actually the root. 
+		root = possible_root;
+		
+	}
+
+	/*
 	 * subsumers
 	 * Arguments:
 	 * 		identity: The identifier of the node whose subsumers we want.
@@ -451,6 +512,95 @@ public class Ontology {
 	}
 	
 	/*
+	 * findImportantNodes
+	 * Arguments:
+	 * 		None
+	 * This function finds up to max_important_nodes nodes with sufficiently
+	 * high IC scores and stores them in important_nodes.
+	 */
+	private void findImportantNodes() {
+		
+		// We use a modified version of quickselect to get the important nodes.
+		
+		// Keep track of all nodes still being considered.
+		Set<String> node_set = new HashSet<String>();
+		node_set.addAll(node_map.keySet());
+		
+		// Keep track of the important nodes.
+		int available_space = max_important_nodes;
+		
+		// Keep track of those elements with IC score larger than the pivot,
+		// those with IC score equal to the pivot, and those with IC score
+		// less than the pivot.
+		Set<String> large = new HashSet<String>();
+		Set<String> equal = new HashSet<String>();
+		Set<String> small = new HashSet<String>();
+		
+		while (node_set.size() > available_space)
+		{
+			// Keep a pivot for partitioning.
+			String pivot = node_set.iterator().next();
+			double pivot_ic = node_map.get(pivot).getICScore();
+			
+			// Partition the nodes by IC score.
+			for (String current_node : node_set)
+			{				
+				// Check each node against the pivot and partition accordingly.
+				double current_ic = node_map.get(current_node).getICScore();
+				if (current_ic > pivot_ic)
+				{
+					large.add(current_node);
+				}
+				else if (current_ic < pivot_ic)
+				{
+					small.add(current_node);
+				}
+				else
+				{
+					equal.add(current_node);
+				}
+			}
+			
+			// If we've got more large elements than nodes we want to keep,
+			// throw out all the small nodes and recurse on the large ones.
+			if (large.size() > available_space)
+			{
+				node_set.retainAll(large);
+				large.clear();
+				equal.clear();
+				small.clear();
+				continue;
+			}
+			
+			// Otherwise, all the large nodes are important.
+			important_nodes.addAll(large);
+			available_space -= large.size();
+			
+			// If we've got more elements with equal IC scores than available
+			// space, throw them all out and say we're done.
+			if (equal.size() > available_space)
+			{
+				node_set.clear();
+				break;
+			}
+			
+			// Otherwise, the equal node are important too.
+			important_nodes.addAll(equal);
+			available_space -= equal.size();
+			
+			// Recurse on the small nodes.
+			node_set.retainAll(small);
+			large.clear();
+			equal.clear();
+			small.clear();
+		}
+		
+		// When we have space for all the remaining nodes, they're all important.
+		important_nodes.addAll(node_set);
+		
+	}
+	
+	/*
 	 * computeLCS
 	 * Arguments:
 	 * 		first_identity: The identifier for the first node.
@@ -465,6 +615,18 @@ public class Ontology {
 		if (lcs_cache.containsKey(combined_identity))
 		{
 			return lcs_cache.get(combined_identity);
+		}
+		
+		// If we're using thresholding, make sure both nodes are sufficiently
+		// important.
+		if (use_thresholding)
+		{
+			// If we don't have important nodes, assume the root is the LCS.
+			if (! (important_nodes.contains(first_identity)	&&
+					important_nodes.contains(second_identity)))
+			{
+				return root;
+			}
 		}
 		
 		// Get all the subsumers for both of the given nodes.

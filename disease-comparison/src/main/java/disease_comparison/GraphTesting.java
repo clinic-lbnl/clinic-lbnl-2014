@@ -10,5 +10,7 @@ public class GraphTesting {
 		OutputOptions options = new OutputOptions();
 		
 		o.compareAllDiseases("./out.txt", options);
+		
+		//System.out.println(o.root());
 	}
 }
