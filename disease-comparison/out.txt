@@ -1,0 +1,10 @@
+PI:5	Other	PI:3	Pyromania	-0.0	
+PI:5	Other	PI:4	Social Anxiety	-0.0	
+PI:5	Other	PI:1	Spam Deficiency	-0.0	
+PI:5	Other	PI:2	Sleep Deprivation	-0.0	
+PI:3	Pyromania	PI:1	Spam Deficiency	0.5849625007211563	
+PI:3	Pyromania	PI:2	Sleep Deprivation	0.5849625007211563	
+PI:4	Social Anxiety	PI:3	Pyromania	1.5849625007211563	
+PI:4	Social Anxiety	PI:1	Spam Deficiency	0.5849625007211563	
+PI:4	Social Anxiety	PI:2	Sleep Deprivation	0.5849625007211563	
+PI:2	Sleep Deprivation	PI:1	Spam Deficiency	0.5849625007211563	

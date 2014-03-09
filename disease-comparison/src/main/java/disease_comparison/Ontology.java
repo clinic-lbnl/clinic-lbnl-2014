@@ -36,6 +36,10 @@ public class Ontology {
 	
 	// Keep a count of all the annotations to the ontology.
 	private int total_annotations;
+	
+	// Keep track of the least common subsumers we've seen so we don't repeat
+	// too much work.
+	private Map<String, String> lcs_cache;
 
 	/****************/
 	/* Constructors */
@@ -56,6 +60,9 @@ public class Ontology {
 		
 		// We haven't yet seen any annotations.
 		total_annotations = 0;
+		
+		// We haven't yet computed the LCS for any pairs of nodes.
+		lcs_cache = new HashMap<String, String>();
 		
 		// Parse the input files and fill in the ontology appropriately.
 		parseClassLabels(class_labels);
@@ -452,6 +459,14 @@ public class Ontology {
 	 */
 	private String computeLCS(String first_identity, String second_identity) {
 		
+		// If we've already computed the LCS for this pair, check the cache
+		// to get it.
+		String combined_identity = first_identity + "\t" + second_identity;
+		if (lcs_cache.containsKey(combined_identity))
+		{
+			return lcs_cache.get(combined_identity);
+		}
+		
 		// Get all the subsumers for both of the given nodes.
 		Set<String> first_subsumers = subsumers(first_identity);
 		Set<String> second_subsumers = subsumers(second_identity);
@@ -474,6 +489,13 @@ public class Ontology {
 				best_ic = subsumer_ic;
 			}
 		}
+		
+		// Cache the result.
+		lcs_cache.put(combined_identity, best_subsumer);
+		
+		// Cache the result in the opposite order so we don't compute that.
+		String other_combined_identity = second_identity + "\t" + first_identity;
+		lcs_cache.put(other_combined_identity, best_subsumer);
 		
 		// Return the identifier of the least common subsumer.
 		return best_subsumer;
