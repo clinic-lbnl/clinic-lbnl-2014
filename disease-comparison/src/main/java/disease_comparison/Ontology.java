@@ -2,10 +2,11 @@ package disease_comparison;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.PrintWriter;
-import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Scanner;
@@ -14,6 +15,15 @@ import java.util.Set;
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.graph.DefaultDirectedGraph;
 import org.jgrapht.graph.DefaultEdge;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.*;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 
 public class Ontology {
 
@@ -44,15 +54,8 @@ public class Ontology {
 	// Keep track of the root of the graph.
 	private String root;
 	
-	/* Thresholding variables */
-	// TODO: Handle these better.
-	
-	// Decide whether or not to use thresholding.
-	private boolean use_thresholding;
-	
-	// If we are using thresholding, decide on the maximum number of
-	// important nodes.
-	private int max_important_nodes;
+	// Hold all the options for the ontology.
+	private Options options;
 	
 	// If we are using thresholding, keep track of the nodes with the
 	// highest IC scores.
@@ -63,8 +66,8 @@ public class Ontology {
 	/****************/
 	
 	public Ontology(String class_labels, String class_to_class,
-			String individual_labels, String individual_to_class) {
-		
+			String individual_labels, String individual_to_class)
+	{
 		// Create a blank ontology.
 		graph = new DefaultDirectedGraph<OntologyNode, DefaultEdge>(DefaultEdge.class);
 		
@@ -84,27 +87,29 @@ public class Ontology {
 		// We don't yet have a graph, so we don't know the root yet.
 		root = "Empty Graph";
 		
-		// FIXME: These are magic constants. It might make sense to put them in
-		// a config file.
-		use_thresholding = true;
-		max_important_nodes = 2;
-		
+		// We haven't yet read in parameters, so just pick values.
+		options = new Options();
+				
 		// We haven't yet seen nodes, so we don't know which are important.
 		important_nodes = new HashSet<String>();
+		
+		// TODO: Don't use magic file path.
+		// Get parameters from the configuration file.
+		options.configure("./ontology.config");
 		
 		// Parse the input files and fill in the ontology appropriately.
 		parseClassLabels(class_labels);
 		parseClassToClass(class_to_class);
 		parseIndividualToClass(individual_to_class);
 		parseIndividualLabels(individual_labels);
-		
+				
 		findRoot();
 		
 		// Get the IC score for every node.
 		computeAllICScores();
 		
 		// If we're using thresholding, find the important nodes.
-		if (use_thresholding)
+		if (options.getUseThresholding())
 		{
 			findImportantNodes();
 		}
@@ -124,8 +129,8 @@ public class Ontology {
 	 * This function constructs a node for each line in the input file with the
 	 * given identifier and name.
 	 */
-	private void parseClassLabels(String filename) {
-		
+	private void parseClassLabels(String filename)
+	{	
 		// Add vertices to the graph.
 		try
 		{
@@ -152,7 +157,6 @@ public class Ontology {
 			System.out.println("Class Label file not found at:");
 			System.out.println(filename);
 		}
-		
 	}
 	
 	/*
@@ -164,8 +168,8 @@ public class Ontology {
 	 * 			the second column holds the identifier of the parent node.
 	 * This function constructs the edges of the graph.
 	 */
-	private void parseClassToClass(String filename) {
-		
+	private void parseClassToClass(String filename)
+	{
 		// Add edges to the graph.
 		try
 		{
@@ -176,6 +180,22 @@ public class Ontology {
 				String [] pieces = line.split("\t");
 				String child_identity = pieces[0];
 				String parent_identity = pieces[1];
+				
+				// TODO: Handle unnamed nodes better.
+				// If either node does not exist, create it and add it to the graph.
+				if (!graph.containsVertex(node_map.get(child_identity)))
+				{
+					OntologyNode child_node = new OntologyNode(child_identity, "unnamed");
+					node_map.put(child_identity, child_node);
+					graph.addVertex(child_node);
+				}
+				if (!graph.containsVertex(node_map.get(parent_identity)))
+				{
+					OntologyNode parent_node = new OntologyNode(parent_identity, "unnamed");
+					node_map.put(parent_identity, parent_node);
+					graph.addVertex(parent_node);
+				}
+				
 				// Find the nodes corresponding to each of the two identifiers
 				// and build the edge between them.
 				graph.addEdge(node_map.get(child_identity), node_map.get(parent_identity));
@@ -187,7 +207,6 @@ public class Ontology {
 			System.out.println("Class To Class file not found at:");
 			System.out.println(filename);
 		}
-		
 	}
 	
 	/*
@@ -199,8 +218,8 @@ public class Ontology {
 	 * 			the second column holds the identifier of the associated node.
 	 * This function counts the annotations on each node.
 	 */
-	private void parseIndividualToClass(String filename) {
-		
+	private void parseIndividualToClass(String filename)
+	{
 		// Read in annotations.
 		try
 		{
@@ -240,7 +259,6 @@ public class Ontology {
 			System.out.println("Individual To Class file not found at:");
 			System.out.println(filename);
 		}
-
 	}
 	
 	/*
@@ -252,8 +270,8 @@ public class Ontology {
 	 * 			the second column holds the name of the disease.
 	 * This function stores the names associated with each disease.
 	 */
-	private void parseIndividualLabels(String filename) {
-		
+	private void parseIndividualLabels(String filename)
+	{
 		// Read in annotations.
 		try
 		{
@@ -275,9 +293,7 @@ public class Ontology {
 			System.out.println("Individual Labels file not found at:");
 			System.out.println(filename);
 		}
-
 	}
-
 	
 	/********************/
 	/* Graph Operations */
@@ -294,8 +310,8 @@ public class Ontology {
 	 * 
 	 * This is a helper function for children and parents.
 	 */
-	private Set<String> directedNeighbors(String identity, boolean out_edges) {
-		
+	private Set<String> directedNeighbors(String identity, boolean out_edges)
+	{
 		// Look up the node.
 		OntologyNode node = node_map.get(identity);
 		
@@ -340,8 +356,9 @@ public class Ontology {
 	 * This function returns the set of identifiers for children of the given
 	 * node.
 	 */
-	public Set<String> children(String identity) {
-		
+	@SuppressWarnings("unused")
+	private Set<String> children(String identity)
+	{
 		// Call the helper function.
 		return directedNeighbors(identity, false);
 		
@@ -354,8 +371,8 @@ public class Ontology {
 	 * This function returns the set of identifiers for parents of the given
 	 * node.
 	 */
-	public Set<String> parents(String identity) {
-		
+	private Set<String> parents(String identity)
+	{
 		// Call the helper function.
 		return directedNeighbors(identity, true);
 		
@@ -372,8 +389,8 @@ public class Ontology {
 	 * 
 	 * This is a helper function for descendants and subsumers.
 	 */
-	private Set<String> directedRelatives(String identity, boolean out_edges) {
-		
+	private Set<String> directedRelatives(String identity, boolean out_edges)
+	{
 		// Keep track of the identifiers for nodes.
 		HashSet<String> relatives = new HashSet<String>();
 		
@@ -414,11 +431,10 @@ public class Ontology {
 	 * This function returns the set of identifiers for descendants of the given
 	 * node.
 	 */
-	public Set<String> descendants(String identity) {
-		
+	private Set<String> descendants(String identity)
+	{
 		// Call the helper function.
-		return directedRelatives(identity, false);
-		
+		return directedRelatives(identity, false);		
 	}
 	
 	/*
@@ -427,8 +443,8 @@ public class Ontology {
 	 * 		None
 	 * This function finds the root of the ontology and stores it.
 	 */
-	private void findRoot() {
-		
+	private void findRoot()
+	{		
 		// Keep track of our possible root and nodes to consider.
 		String possible_root = "Empty Graph";
 		Set<String> node_set = node_map.keySet();
@@ -443,8 +459,7 @@ public class Ontology {
 		}
 		
 		// Our possible root no longer has parents, so it is actually the root. 
-		root = possible_root;
-		
+		root = possible_root;		
 	}
 
 	/*
@@ -454,11 +469,10 @@ public class Ontology {
 	 * This function returns the set of identifiers for subsumers of the given
 	 * node.
 	 */
-	public Set<String> subsumers(String identity) {
-		
+	private Set<String> subsumers(String identity)
+	{
 		// Call the helper function.
 		return directedRelatives(identity, true);
-		
 	}
 	
 	/***********************/
@@ -474,8 +488,8 @@ public class Ontology {
 	 * 
 	 * This is a helper function for computeAllICScores.
 	 */
-	private void computeIC(String identity) {
-		
+	private void computeIC(String identity)
+	{
 		// Look up the node.
 		OntologyNode node = node_map.get(identity); 
 		
@@ -493,7 +507,6 @@ public class Ontology {
 				
 		// Compute the negative log of the probability.
 		node.setICScore(-Math.log(probability) / Math.log(2));
-		
 	}
 	
 	/*
@@ -502,8 +515,8 @@ public class Ontology {
 	 * 		None
 	 * This function computes the IC score for every node in the ontology.
 	 */
-	private void computeAllICScores() {
-		
+	private void computeAllICScores()
+	{
 		// Compute the IC score for each node.
 		for (String identity : node_map.keySet())
 		{
@@ -518,8 +531,8 @@ public class Ontology {
 	 * This function finds up to max_important_nodes nodes with sufficiently
 	 * high IC scores and stores them in important_nodes.
 	 */
-	private void findImportantNodes() {
-		
+	private void findImportantNodes()
+	{
 		// We use a modified version of quickselect to get the important nodes.
 		
 		// Keep track of all nodes still being considered.
@@ -527,7 +540,7 @@ public class Ontology {
 		node_set.addAll(node_map.keySet());
 		
 		// Keep track of the important nodes.
-		int available_space = max_important_nodes;
+		int available_space = options.getMaxImportantNodes();
 		
 		// Keep track of those elements with IC score larger than the pivot,
 		// those with IC score equal to the pivot, and those with IC score
@@ -597,7 +610,6 @@ public class Ontology {
 		
 		// When we have space for all the remaining nodes, they're all important.
 		important_nodes.addAll(node_set);
-		
 	}
 	
 	/*
@@ -607,8 +619,8 @@ public class Ontology {
 	 * 		second_identity: The identifier for the second node.
 	 * This function computes the least common subsumer for two nodes.
 	 */
-	private String computeLCS(String first_identity, String second_identity) {
-		
+	private String computeLCS(String first_identity, String second_identity)
+	{
 		// If we've already computed the LCS for this pair, check the cache
 		// to get it.
 		String combined_identity = first_identity + "\t" + second_identity;
@@ -619,7 +631,7 @@ public class Ontology {
 		
 		// If we're using thresholding, make sure both nodes are sufficiently
 		// important.
-		if (use_thresholding)
+		if (options.getUseThresholding())
 		{
 			// If we don't have important nodes, assume the root is the LCS.
 			if (! (important_nodes.contains(first_identity)	&&
@@ -661,60 +673,73 @@ public class Ontology {
 		
 		// Return the identifier of the least common subsumer.
 		return best_subsumer;
-		
 	}
 	
 	/*
 	 * compareAllDiseases
 	 * Arguments:
-	 * 		filename: The path of the output file.
+	 * 		directory_name: The path of the output directory.
 	 * 		options: Which information to output.
 	 * This computes the similarity scores for all diseases and write them to
 	 * the given output file.
 	 */
-	public void compareAllDiseases(String filename, OutputOptions options) {
+	public void compareAllDiseases()
+			throws IOException, InterruptedException, ClassNotFoundException
+	{		
+		// TODO: This might cause name conflicts. This should probably check
+		// if the temporary file already exists.
+		// TODO: Clean up temporary file.
+		// Open a temporary file for output.
+		String directory_name = options.getOutputDirectory();
+		String temp_filename = directory_name + "_temp.txt";		
+		PrintWriter writer = new PrintWriter(temp_filename);
 		
-		try
-		{			
-			// Open the given file for output.
-			PrintWriter writer = new PrintWriter(filename, "UTF-8");
-			
-			// Find all the diseases.
-			Set<String> disease_identities = annotation_map.keySet();
-					
-			// Compare each pair of diseases.
-			for (String first_identity : disease_identities)
+		// Find all the diseases.
+		Set<String> disease_identities = annotation_map.keySet();
+				
+		// Compare each pair of diseases.
+		for (String first_identity : disease_identities)
+		{
+			for (String second_identity : disease_identities)
 			{
-				for (String second_identity : disease_identities)
+				// We don't need to compare a disease with itself.
+				if (first_identity.equals(second_identity))
 				{
-					// We only need to compare each pair of diseases once.
-					if (first_identity.compareTo(second_identity) <= 0)
-					{
-						continue;
-					}
-					
-					// Get the next line of the output.
-					String line_output = processOutput(options, first_identity, second_identity);
-					
-					// Write the output to the file.
-					writer.println(line_output);
+					continue;
 				}
+				
+				// Use a temporary output file to store each pair of diseases.
+				writer.println(first_identity + '\t' + second_identity);
 			}
-			
-			// Close the output file.
-			writer.close();
 		}
-		catch (FileNotFoundException e)
-		{
-			// If the file doesn't exist, complain.
-			System.out.println("Compare All Diseases wrote to invalid file.");
-		}
-		catch (UnsupportedEncodingException e)
-		{
-			// If the encoding is wrong (which should never happen), complain.
-			System.out.println("Compare All Diseases could not encode output.");
-		}
-						
+		
+		// Close the temporary output file.
+		writer.close();
+		
+		// Create a new job to run.
+		Configuration conf = new Configuration();
+		Job job = new Job(conf, "Disease Comparison");
+
+		// Our reducer outputs <Text, Text> key-value pairs.
+		job.setOutputKeyClass(Text.class);
+		job.setOutputValueClass(Text.class);
+
+		// We want to map with our Mapper and reduce with our Reducer.
+		job.setMapperClass(DiseaseComparisonMapper.class);
+		job.setReducerClass(DiseaseComparisonReducer.class);
+		
+		// We read and write text files.
+		job.setInputFormatClass(TextInputFormat.class);
+		job.setOutputFormatClass(TextOutputFormat.class);
+		
+		// We take our input from the temporary file and put our output in
+		// the given file.
+		FileInputFormat.addInputPath(job, new Path(temp_filename));
+		FileOutputFormat.setOutputPath(job, new Path(directory_name));
+		
+		// Run MapReduce.
+		job.setJarByClass(Ontology.class);
+		job.waitForCompletion(true);
 	}
 	
 	/* 
@@ -725,7 +750,7 @@ public class Ontology {
 	 * 		second_identity: The identifier for the second disease.
 	 * This function creates a line of the output.
 	 */
-	private String processOutput(OutputOptions options, String first_identity, String second_identity)
+	private String processOutput(String first_identity, String second_identity)
 	{
 		// Calculate the maxIC for the first and second identity.
 		double max_ic = maxIC(first_identity, second_identity);
@@ -759,6 +784,93 @@ public class Ontology {
 		// Return the composite line.
 		return line;
 	}
+	
+	/*************/
+	/* MapReduce */
+	/*************/
+
+	/*
+	 * The DiseaseComparisonMapper and DiseaseComparisonReducer classes allow
+	 * us to use MapReduce to parallelize disease comparison.
+	 */
+	private static class DiseaseComparisonMapper extends Mapper<LongWritable, Text, Text, Text>
+	{
+		/*
+		 * map
+		 * Arguments:
+		 * 		offset: The offset of the line to process (unused).
+		 * 		line_text: A line of the input, consisting of two tab-separated
+		 * 			disease identifiers.
+		 * 		context: The object which lets us pass output to the reducer.
+		 * This function divides the work of comparing diseases, then sends the
+		 * pieces to the reducer.
+		 */
+		public void map(LongWritable offset, Text line_text, Context context)
+				throws IOException, InterruptedException
+		{
+			// We can't process Text, so convert the input to a String.
+			String line = line_text.toString();
+			
+			// Extract the diseases.
+			String [] pieces = line.split("\t");
+			String first_identity = pieces[0];
+			String second_identity = pieces[1];
+			
+			// Hadoop can't handle Strings, so convert back to Text.
+			Text first_text = new Text(first_identity);
+			Text second_text = new Text(second_identity);
+						
+			// Send the pair of diseases to the reducer for processing.
+			context.write(first_text, second_text);
+		}
+	}
+	
+	/*
+	 * The DiseaseComparisonMapper and DiseaseComparisonReducer classes allow
+	 * us to use MapReduce to parallelize disease comparison.
+	 */	
+	private static class DiseaseComparisonReducer extends Reducer<Text, Text, Text, Text>
+	{
+		// FIXME: This is a horrible hack. Find some way to pass the input
+		// files or the ontology in.
+		private Ontology ontology = new Ontology(
+				"../../test-files/small-class-labels.txt",
+				"../../test-files/small-class-to-class.txt",
+				"../../test-files/small-individual-labels.txt",
+				"../../test-files/small-individual-to-class.txt"
+				);
+		
+		/*
+		 * reduce
+		 * Arguments:
+		 * 		first_text: The identifier of the first disease (as text).
+		 * 		second_texts: An iterator through all identifiers of second
+		 * 			diseases (as text).
+		 * 		context: The object which lets us pass output to the driver. 
+		 * This function converts pairs of disease identifiers into lines of
+		 * output.
+		 */
+		public void reduce(Text first_text, Iterable<Text> second_texts, Context context)
+				throws IOException, InterruptedException
+		{
+			// Convert the identifier for the first disease to a string.
+			String first_identity = first_text.toString();
+			
+			// Iterate through each possible second disease.
+			for (Text second_text : second_texts)
+			{
+				// Convert the identifier for each second disease to a string.
+				String second_identity = second_text.toString();
+						
+				// Get the next line of the output.
+				String line_output = ontology.processOutput(first_identity, second_identity);
+				
+				// Pass the output to the driver, along with a dummy string.
+				context.write(new Text(line_output), new Text());
+			}
+		}		
+	}
+	
 	
 	/***********************/
 	/* Comparison Measures */
