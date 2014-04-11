@@ -618,7 +618,7 @@ public class Ontology {
 	 * 		second_identity: The identifier for the second node.
 	 * This function computes the least common subsumer for two nodes.
 	 */
-	private String computeLCS(String first_identity, String second_identity)
+	public String computeLCS(String first_identity, String second_identity)
 	{
 		// If we've already computed the LCS for this pair, check the cache
 		// to get it.
@@ -674,258 +674,40 @@ public class Ontology {
 		return best_subsumer;
 	}
 	
-	/*
-	 * compareAllDiseases
-	 * Arguments:
-	 * 		directory_name: The path of the output directory.
-	 * 		options: Which information to output.
-	 * This computes the similarity scores for all diseases and write them to
-	 * the given output file.
-	 */
-	public void compareAllDiseases()
-			throws IOException, InterruptedException, ClassNotFoundException
-	{		
-		// TODO: This might cause name conflicts. This should probably check
-		// if the temporary file already exists.
-		// TODO: Clean up temporary file.
-		// Open a temporary file for output.
-		String directory_name = options.getOutputDirectory();
-		String temp_filename = directory_name + "_temp.txt";		
-		PrintWriter writer = new PrintWriter(temp_filename);
-		
-		// Find all the diseases.
-		Set<String> disease_identities = annotation_map.keySet();
-				
-		// Compare each pair of diseases.
-		for (String first_identity : disease_identities)
-		{
-			for (String second_identity : disease_identities)
-			{
-				// We don't need to compare a disease with itself.
-				if (first_identity.equals(second_identity))
-				{
-					continue;
-				}
-				
-				// Use a temporary output file to store each pair of diseases.
-				writer.println(first_identity + '\t' + second_identity);
-			}
-		}
-		
-		// Close the temporary output file.
-		writer.close();
-		
-		// FIXME: Comment this
-		Configuration conf = new Configuration();
-		conf.set("class-labels", "../../test-files/small-class-labels.txt");
-		conf.set("class-to-class", "../../test-files/small-class-to-class.txt");
-		conf.set("individual-to-class", "../../test-files/small-individual-labels.txt");
-		conf.set("individual-labels", "../../test-files/small-individual-to-class.txt");
-		Job job = new Job(conf, "Disease Comparison");
-
-		// Our reducer outputs <Text, Text> key-value pairs.
-		job.setOutputKeyClass(Text.class);
-		job.setOutputValueClass(Text.class);
-
-		// We want to map with our Mapper and reduce with our Reducer.
-		job.setMapperClass(DiseaseComparisonMapper.class);
-		job.setReducerClass(DiseaseComparisonReducer.class);
-		
-		// We read and write text files.
-		job.setInputFormatClass(TextInputFormat.class);
-		job.setOutputFormatClass(TextOutputFormat.class);
-		
-		// We take our input from the temporary file and put our output in
-		// the given file.
-		FileInputFormat.addInputPath(job, new Path(temp_filename));
-		FileOutputFormat.setOutputPath(job, new Path(directory_name));
-		
-		// Run MapReduce.
-		job.setJarByClass(Ontology.class);
-		job.waitForCompletion(true);
-	}
-	
-	/* 
-	 * processOutput
-	 * Arguments:
-	 * 		options: Which information to output.
-	 * 		first_identity: The identifier for the first disease.
-	 * 		second_identity: The identifier for the second disease.
-	 * This function creates a line of the output.
-	 */
-	private String processOutput(String first_identity, String second_identity)
-	{
-		// Calculate the maxIC for the first and second identity.
-		double max_ic = maxIC(first_identity, second_identity);
-		
-		// Create the output string.	
-		String line = "";
-		
-		// Show identities and names if the appropriate options are chosen.
-		if (options.getShowIdentities())
-		{
-			line += first_identity + "\t";
-		}
-		if (options.getShowNames())
-		{
-			line += annotation_names.get(first_identity) + "\t";
-		}
-		if (options.getShowIdentities())
-		{
-			line += second_identity + "\t";
-		}
-		if (options.getShowNames())
-		{
-			line += annotation_names.get(second_identity) + "\t";
-		}
-		// Show measures if the corresponding options are chosen.
-		if (options.getShowMaxIC())
-		{
-			line += max_ic + "\t";
-		}
-		
-		// Return the composite line.
-		return line;
-	}
-	
-	/*************/
-	/* MapReduce */
-	/*************/
-
-	/*
-	 * The DiseaseComparisonMapper and DiseaseComparisonReducer classes allow
-	 * us to use MapReduce to parallelize disease comparison.
-	 */
-	private static class DiseaseComparisonMapper extends Mapper<LongWritable, Text, Text, Text>
-	{
-		/*
-		 * map
-		 * Arguments:
-		 * 		offset: The offset of the line to process (unused).
-		 * 		line_text: A line of the input, consisting of two tab-separated
-		 * 			disease identifiers.
-		 * 		context: The object which lets us pass output to the reducer.
-		 * This function divides the work of comparing diseases, then sends the
-		 * pieces to the reducer.
-		 */
-		public void map(LongWritable offset, Text line_text, Context context)
-				throws IOException, InterruptedException
-		{
-			// We can't process Text, so convert the input to a String.
-			String line = line_text.toString();
-			
-			// Extract the diseases.
-			String [] pieces = line.split("\t");
-			String first_identity = pieces[0];
-			String second_identity = pieces[1];
-			
-			// Hadoop can't handle Strings, so convert back to Text.
-			Text first_text = new Text(first_identity);
-			Text second_text = new Text(second_identity);
-						
-			// Send the pair of diseases to the reducer for processing.
-			context.write(first_text, second_text);
-		}
-	}
-	
-	/*
-	 * The DiseaseComparisonMapper and DiseaseComparisonReducer classes allow
-	 * us to use MapReduce to parallelize disease comparison.
-	 */	
-	private static class DiseaseComparisonReducer extends Reducer<Text, Text, Text, Text>
-	{
-		// Keep track of the ontology so we don't rebuild it too many times.
-		private Ontology ontology = null;
-		
-		/*
-		 * reduce
-		 * Arguments:
-		 * 		first_text: The identifier of the first disease (as text).
-		 * 		second_texts: An iterator through all identifiers of second
-		 * 			diseases (as text).
-		 * 		context: The object which lets us pass output to the driver. 
-		 * This function converts pairs of disease identifiers into lines of
-		 * output.
-		 */
-		public void reduce(Text first_text, Iterable<Text> second_texts, Context context)
-				throws IOException, InterruptedException
-		{
-			// Construct an ontology if we don't have one already.
-			if (ontology == null)
-			{
-				// Get the input files.
-				Configuration conf = context.getConfiguration();
-				String class_labels = conf.get("class-labels");
-				String class_to_class = conf.get("class-to-class");
-				String individual_to_class = conf.get("individual-to-class");
-				String individual_labels = conf.get("individual-labels");
-				
-				// Build the ontology.
-				ontology = new Ontology(class_labels, class_to_class, individual_to_class, individual_labels);
-			}
-			
-			// Convert the identifier for the first disease to a string.
-			String first_identity = first_text.toString();
-			
-			// Iterate through each possible second disease.
-			for (Text second_text : second_texts)
-			{
-				// Convert the identifier for each second disease to a string.
-				String second_identity = second_text.toString();
-						
-				// Get the next line of the output.
-				String line_output = ontology.processOutput(first_identity, second_identity);
-				
-				// Pass the output to the driver, along with a dummy string.
-				context.write(new Text(line_output), new Text());
-			}
-		}		
-	}
-	
-	
 	/***********************/
-	/* Comparison Measures */
+	/* Getters and Setters */
 	/***********************/
-	
-	// TODO: Add comparison measures.
-	// We've only provided a test example here.
-	
-	/*
-	 * maxIC
-	 * Arguments:
-	 * 		first_identity: The identifier for the first disease.
-	 * 		second_identity: The identifier for the second disease.
-	 * This function computes the maxIC measure for the two given diseases.
-	 */
-	private double maxIC(String first_identity, String second_identity) {
-		
-		// Find all the nodes associated with each disease.
-		Set<String> first_nodes = annotation_map.get(first_identity);
-		Set<String> second_nodes = annotation_map.get(second_identity);
 
-		// Keep track of the best IC score we've seen.
-		double best_ic = -1;
-		
-		// Look at the nodes associated with each annotation.
-		for (String first_node_identity : first_nodes)
-		{
-			for (String second_node_identity : second_nodes)
-			{
-				// Find the least common subsumer for the two nodes.
-				String lcs = computeLCS(first_node_identity, second_node_identity);
-				double lcs_ic = node_map.get(lcs).getICScore();
-				
-				// If the LCS has a better IC score, update our best.
-				if (lcs_ic > best_ic)
-				{
-					best_ic = lcs_ic;
-				}
-			}
-		}
-		
-		// Return the best IC score.
-		return best_ic;
-		
+	public DirectedGraph<OntologyNode, DefaultEdge> getGraph() {
+		return graph;
+	}
+
+	public Map<String, OntologyNode> getNodeMap() {
+		return node_map;
+	}
+
+	public Map<String, Set<String>> getAnnotationMap() {
+		return annotation_map;
+	}
+
+	public Map<String, String> getAnnotationNames() {
+		return annotation_names;
+	}
+
+	public int getTotalAnnotations() {
+		return total_annotations;
+	}
+	
+	public String getRoot() {
+		return root;
+	}
+
+	public Options getOptions() {
+		return options;
+	}
+
+	public Set<String> getImportantNodes() {
+		return important_nodes;
 	}
 	
 }

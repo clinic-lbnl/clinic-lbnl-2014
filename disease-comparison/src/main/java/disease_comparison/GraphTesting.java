@@ -41,6 +41,7 @@ public class GraphTesting {
 	}
 	*/
 	
+	/*
 	public static void main(String [] args) {
 		
 		Ontology o = new Ontology("../../test-files/small-class-labels.txt", "../../test-files/small-class-to-class.txt",
@@ -59,4 +60,5 @@ public class GraphTesting {
 		long end_time = System.nanoTime();
 		System.out.println("Comparing diseases took " + (end_time - start_time) / 1000 + " microseconds");
 	}
+	*/
 }

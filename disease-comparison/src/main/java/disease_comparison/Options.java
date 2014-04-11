@@ -33,6 +33,9 @@ public class Options {
 	private boolean show_max_ic;
 	// TODO: Add other measures.
 	
+	// Are all the measures symmetric?
+	private boolean symmetric;
+	
 	/****************/
 	/* Constructors */
 	/****************/
@@ -69,6 +72,10 @@ public class Options {
 		// Check the configuration file.
 		try
 		{
+			// Check if the user has said whether to assume all measures are
+			// symmetric.
+			boolean set_symmetric = false;
+			
 			// Check what each line of the configuration file says and set the
 			// appropriate parameters.
 			for (Scanner sc = new Scanner(new File(filename)); sc.hasNext(); )
@@ -77,7 +84,7 @@ public class Options {
 				String line = sc.nextLine();
 				
 				// Strip out any whitespace and convert to lowercase.
-				line.replaceAll("\\s+","");
+				line = line.replaceAll("\\s+","");
 				line.toLowerCase();
 				
 				// Break at the '=' character.
@@ -110,7 +117,20 @@ public class Options {
 				{
 					show_max_ic = Boolean.parseBoolean(value);
 				}
+				if (parameter.equals("symmetric"))
+				{
+					symmetric = Boolean.parseBoolean(value);
+					// The user has said not to use the default symmetry.
+					set_symmetric = true;
+				}
 			}
+			
+			// Check if the chosen measures are all symmetric.
+			if (!set_symmetric)
+			{
+				checkSymmetric();
+			}
+			
 		}
 		catch (FileNotFoundException exception)
 		{
@@ -118,6 +138,23 @@ public class Options {
 			System.out.println("Configuration file not found at:");
 			System.out.println(filename);
 		}
+	}
+	
+	/*
+	 * checkSymmetric
+	 * Arguments:
+	 * 		None
+	 * This function checks if all the specified measures are symmetric.
+	 */
+	private void checkSymmetric()
+	{
+		// Check if any asymmetric measure is used.
+		symmetric = true;
+		
+		// TODO: Currently, no asymmetric measures are implemented.
+		// We could handle them with
+		// symmetric &= !show_iccs;
+		// or something similar.
 	}
 
 	/***********************/
@@ -158,21 +195,26 @@ public class Options {
 	
 	public boolean getShowNames() {
 		return show_names;
-	}
-	
+	}	
 	
 	public void setShowNames(boolean show_names) {
 		this.show_names = show_names;
-	}
-	
+	}	
 	
 	public boolean getShowMaxIC() {
 		return show_max_ic;
-	}
-	
+	}	
 	
 	public void setShowMaxIC(boolean show_max_ic) {
 		this.show_max_ic = show_max_ic;
+	}
+
+	public boolean getSymmetric() {
+		return symmetric;
+	}
+
+	public void setSymmetric(boolean symmetric) {
+		this.symmetric = symmetric;
 	}
 
 }
