@@ -99,7 +99,6 @@ public class DiseaseComparisonDriver {
 		
 		// Create and set up the Hadoop job.
 		Configuration conf = new Configuration();
-		// FIXME: Don't hard-code this.
 		conf.set("class-labels", class_labels);
 		conf.set("class-to-class", class_to_class);
 		conf.set("individual-to-class", individual_to_class);
@@ -171,6 +170,9 @@ public class DiseaseComparisonDriver {
 			line += max_ic + "\t";
 		}
 		
+		// Strip excess whitespace.
+		line = line.trim();
+		
 		// Return the composite line.
 		return line;
 	}
@@ -188,7 +190,7 @@ public class DiseaseComparisonDriver {
 	 * 			the second column holds the name of the disease.
 	 * This function stores the names associated with each disease.
 	 */
-	private static Set<String> parseIndividualLabels(String individual_labels)
+	private static Set<String> parseIndividualLabels(String filename)
 	{
 		// Keep track of the identities of each disease.
 		Set<String> identities = new HashSet<String>();
@@ -197,7 +199,7 @@ public class DiseaseComparisonDriver {
 		try
 		{
 			// Add an annotation label for each line of the input file.
-			for (Scanner sc = new Scanner(new File(individual_labels)); sc.hasNext(); )
+			for (Scanner sc = new Scanner(new File(filename)); sc.hasNext(); )
 			{
 				String line = sc.nextLine();
 				String [] pieces = line.split("\t");
@@ -212,7 +214,7 @@ public class DiseaseComparisonDriver {
 		{
 			// If we're given a bad file, let the user know.
 			System.out.println("Individual Labels file not found at:");
-			System.out.println(individual_labels);
+			System.out.println(filename);
 		}
 		
 		return identities;

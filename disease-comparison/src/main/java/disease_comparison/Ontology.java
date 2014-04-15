@@ -129,7 +129,7 @@ public class Ontology {
 	 * given identifier and name.
 	 */
 	private void parseClassLabels(String filename)
-	{	
+	{		
 		// Add vertices to the graph.
 		try
 		{
@@ -230,6 +230,12 @@ public class Ontology {
 				String annotation_identity = pieces[0];
 				String node_identity = pieces[1];
 				OntologyNode node = node_map.get(node_identity);
+				
+				// FIXME: Handle invalid nodes better.
+				if (node == null)
+				{
+					continue;
+				}
 				
 				// Add an annotation to the node count.
 				node.addGivenAnnotation();
