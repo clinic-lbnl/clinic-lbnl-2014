@@ -25,9 +25,15 @@ public class DiseaseComparisonMeasures {
 		// Find all the nodes associated with each disease.
 		Set<String> first_nodes = annotation_map.get(first_identity);
 		Set<String> second_nodes = annotation_map.get(second_identity);
+		
+		// FIXME: Handle invalid sets better.
+		if (first_nodes == null || second_nodes == null)
+		{
+			return 0;
+		}
 
 		// Keep track of the best IC score we've seen.
-		double best_ic = -1;
+		double best_ic = 0;
 		
 		// Look at the nodes associated with each annotation.
 		for (String first_node_identity : first_nodes)
@@ -36,6 +42,13 @@ public class DiseaseComparisonMeasures {
 			{
 				// Find the least common subsumer for the two nodes.
 				String lcs = ontology.computeLCS(first_node_identity, second_node_identity);
+				
+				// FIXME: Handle invalid nodes better.
+				if (node_map.get(lcs) == null)
+				{
+					continue;
+				}
+				
 				double lcs_ic = node_map.get(lcs).getICScore();
 				
 				// If the LCS has a better IC score, update our best.
