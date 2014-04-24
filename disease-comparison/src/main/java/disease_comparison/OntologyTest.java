@@ -56,7 +56,9 @@ public class OntologyTest {
 	 */
 	@Test
 	public void testGetAnnotationMap() {
-		fail("Not yet implemented");
+		assert(simple.getAnnotationMap().get("PI:3").contains("HMC:2222"));
+		assert(simple.getAnnotationMap().get("PI:3").contains("HMC:3333"));
+		assert(!simple.getAnnotationMap().get("PI:3").contains("HMC:3141"));
 	}
 
 	/**
@@ -64,7 +66,11 @@ public class OntologyTest {
 	 */
 	@Test
 	public void testGetAnnotationNames() {
-		fail("Not yet implemented");
+		assert(simple.getAnnotationNames().get("PI:1") == "Spam Deficiency");
+		assert(simple.getAnnotationNames().get("PI:2") == "Sleep Deprivation");
+		assert(simple.getAnnotationNames().get("PI:3") == "Pyromania");
+		assert(simple.getAnnotationNames().get("PI:4") == "Social Anxiety");
+		assert(simple.getAnnotationNames().get("PI:5") == "Other");
 	}
 
 	/**

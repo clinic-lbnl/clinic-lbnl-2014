@@ -170,6 +170,9 @@ public class DiseaseComparisonDriver {
 			line += max_ic + "\t";
 		}
 		
+		// FIXME: Remove this.
+		line += DiseaseComparisonMeasures.bestLCS(ontology, first_identity, second_identity);
+		
 		// Strip excess whitespace.
 		line = line.trim();
 		
