@@ -74,14 +74,6 @@ public class OntologyTest {
 	}
 
 	/**
-	 * Test method for {@link disease_comparison.Ontology#getTotalAnnotations()}.
-	 */
-	@Test
-	public void testGetTotalAnnotations() {
-		assert(simple.getTotalAnnotations() == 6);
-	}
-
-	/**
 	 * Test method for {@link disease_comparison.Ontology#getRoot()}.
 	 */
 	@Test

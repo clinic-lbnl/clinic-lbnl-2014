@@ -92,7 +92,7 @@ public class DiseaseComparisonMeasures {
 			{
 				// Find the least common subsumer for the two nodes.
 				String lcs = ontology.computeLCS(first_node_identity, second_node_identity);
-				
+								
 				// FIXME: Handle invalid nodes better.
 				if (node_map.get(lcs) == null)
 				{

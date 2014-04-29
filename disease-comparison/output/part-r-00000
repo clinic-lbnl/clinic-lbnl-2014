@@ -1,10 +1,10 @@
-PI:2	Sleep Deprivation	PI:1	Spam Deficiency	0.3219280948873623	HMC:3141	
-PI:3	Pyromania	PI:1	Spam Deficiency	0.3219280948873623	HMC:3141	
-PI:3	Pyromania	PI:2	Sleep Deprivation	0.3219280948873623	HMC:3141	
-PI:4	Social Anxiety	PI:3	Pyromania	1.3219280948873622	HMC:3333	
-PI:4	Social Anxiety	PI:1	Spam Deficiency	0.3219280948873623	HMC:3141	
-PI:4	Social Anxiety	PI:2	Sleep Deprivation	0.3219280948873623	HMC:3141	
-PI:5	Other	PI:3	Pyromania	0.0	NO LCS FOUND	
-PI:5	Other	PI:4	Social Anxiety	0.0	NO LCS FOUND	
-PI:5	Other	PI:1	Spam Deficiency	0.0	NO LCS FOUND	
-PI:5	Other	PI:2	Sleep Deprivation	0.0	NO LCS FOUND	
+PI:2	null	PI:1	null	0.3219280948873623	HMC:3141	
+PI:3	null	PI:1	null	0.3219280948873623	HMC:3141	
+PI:3	null	PI:2	null	0.3219280948873623	HMC:3141	
+PI:4	null	PI:3	null	1.3219280948873622	HMC:3333	
+PI:4	null	PI:1	null	0.3219280948873623	HMC:3141	
+PI:4	null	PI:2	null	0.3219280948873623	HMC:3141	
+PI:5	null	PI:3	null	0.0	NO LCS FOUND	
+PI:5	null	PI:4	null	0.0	NO LCS FOUND	
+PI:5	null	PI:1	null	0.0	NO LCS FOUND	
+PI:5	null	PI:2	null	0.0	NO LCS FOUND	

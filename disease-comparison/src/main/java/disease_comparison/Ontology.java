@@ -499,7 +499,7 @@ public class Ontology {
 		}
 		
 		// Compute the IC score from the number of annotations.
-		double probability = (double)derived_annotations.size() / annotation_names.size();
+		double probability = (double)derived_annotations.size() / annotation_map.size();
 				
 		// Compute the negative log of the probability.
 		node.setICScore(-Math.log(probability) / Math.log(2));
