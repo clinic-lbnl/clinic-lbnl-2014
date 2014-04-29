@@ -43,9 +43,6 @@ public class Ontology {
 	// Keep track of the names of diseases.
 	private Map<String, String> annotation_names;
 	
-	// Keep a count of all the annotations to the ontology.
-	private int total_annotations;
-	
 	// Keep track of the least common subsumers we've seen so we don't repeat
 	// too much work.
 	private Map<String, String> lcs_cache;
@@ -76,9 +73,6 @@ public class Ontology {
 		// We haven't yet seen any diseases.
 		annotation_map = new HashMap<String, Set<String>>();
 		annotation_names = new HashMap<String, String>();
-		
-		// We haven't yet seen any annotations.
-		total_annotations = 0;
 		
 		// We haven't yet computed the LCS for any pairs of nodes.
 		lcs_cache = new HashMap<String, String>();
@@ -238,10 +232,7 @@ public class Ontology {
 				}
 				
 				// Add an annotation to the node count.
-				node.addGivenAnnotation();
-				
-				// Add an annotation to the ontology count.
-				total_annotations++;
+				node.addGivenAnnotation(annotation_identity);
 				
 				// Add an annotation to the disease.
 				if (annotation_map.containsKey(annotation_identity))
@@ -498,17 +489,17 @@ public class Ontology {
 		// Look up the node.
 		OntologyNode node = node_map.get(identity); 
 		
-		// Keep track of the annotations we've seen.
-		int derived_annotations = 0;
+		// Keep track of the annotated diseases we've seen.
+		HashSet<String> derived_annotations = new HashSet<String>();
 		
-		// Find how many annotations are on each descendant.
+		// Find which diseases are annotated to each descendant.
 		for (String descendant_identity : descendants(identity))
 		{
-			derived_annotations += node_map.get(descendant_identity).getGivenAnnotations();
+			derived_annotations.addAll(node_map.get(descendant_identity).getGivenAnnotations());
 		}
 		
 		// Compute the IC score from the number of annotations.
-		double probability = (double)derived_annotations / total_annotations;
+		double probability = (double)derived_annotations.size() / annotation_names.size();
 				
 		// Compute the negative log of the probability.
 		node.setICScore(-Math.log(probability) / Math.log(2));
@@ -698,10 +689,6 @@ public class Ontology {
 
 	public Map<String, String> getAnnotationNames() {
 		return annotation_names;
-	}
-
-	public int getTotalAnnotations() {
-		return total_annotations;
 	}
 	
 	public String getRoot() {

@@ -1,5 +1,8 @@
 package disease_comparison;
 
+import java.util.HashSet;
+import java.util.Set;
+
 /*
  * The OntologyNode class represents a node in an ontology.
  * It holds information relevant to a specific node.
@@ -16,8 +19,8 @@ public class OntologyNode {
 	// The unique identifier.
 	private String identity;
 	
-	// The number of annotations directly associated with the node.
-	private int given_annotations;
+	// The diseases directly associated with the node.
+	private Set<String> given_annotations;
 	
 	// The IC score of the node.
 	private double ic_score;
@@ -33,7 +36,7 @@ public class OntologyNode {
 		identity = new_identity;
 		
 		// Until annotations are processed, assume there aren't any.
-		given_annotations = 0;
+		given_annotations = new HashSet<String>();
 		
 		// We can't compute the IC score until we've processed annotations.
 		setICScore(-1);
@@ -53,12 +56,12 @@ public class OntologyNode {
 		this.name = name;
 	}
 
-	public int getGivenAnnotations()
+	public Set<String> getGivenAnnotations()
 	{
 		return given_annotations;
 	}
 
-	public void setGivenAnnotations(int given_annotations)
+	public void setGivenAnnotations(Set<String> given_annotations)
 	{
 		this.given_annotations = given_annotations;
 	}
@@ -87,9 +90,9 @@ public class OntologyNode {
 	/* Mutators */
 	/************/
 	
-	public void addGivenAnnotation()
+	public void addGivenAnnotation(String identity)
 	{
-		given_annotations++;
+		given_annotations.add(identity);
 	}
 	
 	/****************/
